@@ -5376,15 +5376,42 @@ async function saveBill(){
   }catch(err){toast('บันทึก Bill ไม่สำเร็จ: '+err.message)}finally{setLoading(false)}
 }
 
-async function deleteBill(id){
-  const row=billsState.rows.find(x=>x.id===id);if(!row)return;if(!confirm(`ลบ ${row.document_no} ใช่ไหม?`))return;
-  setLoading(true,'กำลังลบเอกสาร...');
-  try{
-    const {error}=await db.from('purchase_documents').delete().eq('id',id);if(error)throw error;
-    try{if(BILLS_GOOGLE_BRIDGE)await deleteBillFromGoogleSheet(row.document_no)}catch(sheetError){toast(`ลบ Supabase แล้ว แต่ Google Sheet ยังไม่สำเร็จ: ${sheetError.message}`)}
-    closeBillsDetail();toast('ลบเอกสารแล้ว');await loadBills();
-  }catch(err){toast('ลบ Bill ไม่สำเร็จ: '+err.message)}finally{setLoading(false)}
+
+async function deleteBill(id) {
+  const row = billsState.rows.find(x => x.id === id);
+  if (!row) return;
+
+  if (!confirm(`ลบ ${row.document_no} ใช่ไหม?`)) return;
+
+  setLoading(true, 'กำลังลบเอกสาร...');
+
+  try {
+    if (BILLS_GOOGLE_BRIDGE) {
+      const sheetResult = await deleteBillFromGoogleSheet(row.document_no);
+
+      if (!sheetResult || Number(sheetResult.deleted) < 1) {
+        throw new Error(`ไม่พบเลขเอกสาร ${row.document_no} ใน Google Sheet`);
+      }
+    }
+
+    const { error } = await db
+      .from('purchase_documents')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    closeBillsDetail();
+    toast('ลบเอกสารและ Google Sheet สำเร็จแล้ว');
+    await loadBills();
+
+  } catch (err) {
+    toast('ลบ Bill ไม่สำเร็จ: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
 }
+
 async function markBillPrinted(id,pdfUrl=''){
   const now=new Date().toISOString();
   const payload={document_id:id,printed:true,need_print:false,printed_at:now,updated_at:now};
@@ -5590,10 +5617,24 @@ async function printBill(id){
     row.__printing=false;
   }
 }
-async function deleteBillFromGoogleSheet(documentNo){
-  if(!BILLS_GOOGLE_BRIDGE)return {success:true,skipped:true};
-  return billsGooglePost('deleteByMatch',{sheetName:BILLS_SHEET_NAME,match:[String(documentNo||'').trim()]});
+
+async function deleteBillFromGoogleSheet(documentNo) {
+  if (!BILLS_GOOGLE_BRIDGE) {
+    throw new Error('ยังไม่ได้ตั้งค่า Google Sheet Bridge');
+  }
+
+  const result = await billsGooglePost('deleteByMatch', {
+    sheetName: BILLS_SHEET_NAME,
+    match: [String(documentNo || '').trim()]
+  });
+
+  if (Number(result?.deleted) < 1) {
+    throw new Error(`Google Sheet ไม่พบเอกสารเลขที่ ${documentNo}`);
+  }
+
+  return result;
 }
+
 
 // Filter bindings for the new module only.
 ['billsFrom','billsTo','billsPayment','billsSearch'].forEach(id=>{document.getElementById(id)?.addEventListener('input',()=>{billsState.page=1;renderBills()});document.getElementById(id)?.addEventListener('change',()=>{billsState.page=1;renderBills()})});
