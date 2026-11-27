@@ -1792,8 +1792,11 @@ const db = sbReady ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // Dashboard Sheet: https://docs.google.com/spreadsheets/d/1r1-B1pVRyK4bEtlNt9SOQ29GzAa6z-0opP5LKeTG2Ok/edit
 // Bill Sheet: https://docs.google.com/spreadsheets/d/1uGfINOSLMFnah-VDs0gTdNkQYgzA2pqwjnmmNKBDQRA/edit
 // Keep both bridges empty until the NEW Code.gs files are deployed, to prevent writing to the old spreadsheets.
-const GOOGLE_SHEET_BRIDGE = '';
-const BILLS_GOOGLE_BRIDGE = '';
+
+const GOOGLE_SHEET_BRIDGE = 'https://script.google.com/macros/s/AKfycbzN6zQIx--PRiWs6AbRuvn2cOMk5d5ggFLLNy2UyweaIy3FWlr6xLI5Yg3XV85lhpkm/exec';
+
+const BILLS_GOOGLE_BRIDGE = 'https://script.google.com/macros/s/AKfycbzyuDtDhrBj3VhsbddrbBwXjWwjRh9LNdek7SyHqbU_bCFa0y98_lzigzVEC7Th7xRh/exec';
+
 
 // Supabase Edge Function for AI Loyverse Scan
 const LOYVERSE_SCAN_FUNCTION = `${SUPABASE_URL}/functions/v1/loyverse-scan`; // BalenristaPartner Loyverse Scan Edge Function
